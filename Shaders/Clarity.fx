@@ -1,5 +1,5 @@
 
-//Clarity by Ioxa
+//Clarity by Ioxa 
 //Version 1.5 for ReShade 3.0
 
 //>Clarity Settings<\\
