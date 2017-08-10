@@ -1,5 +1,5 @@
 //Surface Sharpen by Ioxa
-//Version 1.1 for ReShade 3.0
+//Version 08.09.17 for ReShade 3.0
 
 //Settings
 #if !defined UseSurfaceSharpenDebug
@@ -41,34 +41,11 @@ uniform float Slope
 	ui_tooltip = "Adjusts the slope of the detail channel. Values above 1 increase the strength, values below 1 decrease it.";
 > = 1.2;
 
-uniform int BlendIfDark
-<
-	ui_type = "drag";
-	ui_min = 0; ui_max = 255;
-	ui_tooltip = "Any pixels below this value will be excluded from the effect. Set to 50 to target mid-tones.";
-	ui_step = 5;
-> = 50;
-
-uniform int BlendIfLight
-<
-	ui_type = "drag";
-	ui_min = 0; ui_max = 255;
-	ui_tooltip = "Any pixels above this value will be excluded from the effect. Set to 205 to target mid-tones.";
-	ui_step = 5;
-> = 205;
-
-uniform float BlendIfRange
-<
-	ui_type = "drag";
-	ui_min = 0.0; ui_max = 1.0;
-	ui_tooltip = "Adjusts the range of the BlendIfMask.";
-> = 0.2;
-
 #if UseSurfaceSharpenDebug
 uniform int DebugMode
 <
 	ui_type = "combo";
-	ui_items = "\None\0EdgeChannel\0DetailChannel\0BlurChannel\0BlendIfMask\0";
+	ui_items = "\None\0EdgeChannel\0DetailChannel\0BlurChannel\0";
 	ui_tooltip = "Helpful for adjusting settings";
 > = 0;
 #endif
@@ -265,39 +242,6 @@ float3 x = detail;
 x = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
 
 x = Slope*(x-0.5)+0.5;
-
-	[flatten]
-	if( BlendIfDark || BlendIfLight < 255)
-	{
-		float BlendIfD = ((255-BlendIfDark)/255.0);
-		float BlendIfL = (BlendIfLight/255.0);
-		float mask = 1.0;
-		float range;
-		//float luma = dot(final_color,0.333333);
-		float luma = dot(blur,float3(0.32786885,0.655737705,0.0163934436));
-				
-		if(BlendIfDark)
-		{
-			range = BlendIfD*BlendIfRange;
-			float mix = 1-luma;
-			mask -= smoothstep(BlendIfD-(range),BlendIfD+(range),mix);
-		}
-					
-		if(BlendIfLight)
-		{
-			range = BlendIfL*BlendIfRange;
-			mask = lerp(mask,0.0,smoothstep(BlendIfL-(range),BlendIfL+(range),luma));
-		}
-			
-		x = lerp(detail,x,mask);
-		
-		#if UseSurfaceSharpenDebug
-			if(DebugMode == 4)
-			{
-				return float3(mask,mask,mask);
-			}
-		#endif
-	}
 
 detail = lerp(detail,x,CurveStrength);
 
