@@ -106,13 +106,6 @@ uniform int PreprocessorDefinitions
 	ui_tooltip = "These settings can be added to the Preprocessor Definitions in the settings tab.";
 > = 0;
 
-uniform int test
-<
-	ui_type = "drag";
-	ui_min = 0; ui_max = 1;
-	ui_tooltip = "";
-> = 0;
-
 #include "ReShade.fxh"
 
 #define ClarityLuma float3(0.32786885,0.655737705,0.0163934436)
