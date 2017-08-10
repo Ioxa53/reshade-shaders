@@ -1,5 +1,5 @@
 //Clarity2 by Ioxa
-//Version 1.1 for ReShade 3.0
+//Version 08.09.17 for ReShade 3.0
 
 //>Clarity Settings<\\
 #if !defined UseClarityDebug
@@ -115,6 +115,9 @@ uniform int test
 
 #include "ReShade.fxh"
 
+#define ClarityLuma float3(0.32786885,0.655737705,0.0163934436)
+//#define ClarityLuma float3(0.3333,0.3333,0.3333)
+
 //Offset Values
 #define Offset02y ReShade::PixelSize.y*1.1824255238
 #define Offset03y ReShade::PixelSize.y*3.0293122308
@@ -228,9 +231,6 @@ uniform int test
 #define noiseR float(frac((cos(dot(texcoord, float2(12.9898,78.233)))) * 43758.5453 + texcoord.x)*0.015873)-0.0079365
 #define noiseG float(frac((cos(dot(texcoord, float2(-12.9898,78.233)))) * 43758.5453 + texcoord.x)*0.015873)-0.0079365
 #define noiseB float(frac((sin(dot(texcoord, float2(12.9898,-78.233)))) * 43758.5453 + texcoord.x)*0.015873)-0.0079365
-
-//BlendModes
-#define BlendSoftLightf(base, blend) ((blend < 0.5) ? (2.0 * base * blend + base * base * (1.0 - 2.0 * blend)) : (sqrt(base) * (2.0 * blend - 1.0) + 2.0 * base * (1.0 - blend)))
 			
 #if ClarityRGBMode
 	#define ClarityFormat RGBA8
@@ -266,7 +266,7 @@ ClarityFloat blur = tex2D(Clarity2Sampler, texcoord/ClarityOffset).CF;
 	
 	float4 orig = tex2D(ReShade::BackBuffer, texcoord);
 #if ClarityRGBMode == 0	
-	float luma = dot(orig.rgb,float3(0.32786885,0.655737705,0.0163934436));
+	float luma = dot(orig.rgb,ClarityLuma);
 	float3 chroma = orig.rgb/luma;
 #endif
 	
@@ -441,17 +441,25 @@ ClarityFloat blur = tex2D(Clarity2Sampler, texcoord/ClarityOffset).CF;
 		{
 			range = ClarityBlendIfD*BlendIfRange;
 			#if ClarityRGBMode
-			float3 mix = 1-orig.rgb;
+				float3 mix = 1-orig.rgb;
+				mask -= smoothstep(ClarityBlendIfD-(range),ClarityBlendIfD+(range),mix);
 			#else 
 			float mix = 1.0-luma;
+				mask -= smoothstep(ClarityBlendIfD-(range),ClarityBlendIfD+(range),mix);
 			#endif 
-			mask -= smoothstep(ClarityBlendIfD-(range),ClarityBlendIfD+(range),mix);
 		}
 					
 		if(ClarityBlendIfLight)
 		{
 			range = ClarityBlendIfL*BlendIfRange;
-			mask = lerp(mask,0.0,smoothstep(ClarityBlendIfL-(range),ClarityBlendIfL+(range),orig.rgb));
+			#if ClarityRGBMode
+				float3 mix = orig.rgb;
+				mask = lerp(mask,0.0,smoothstep(ClarityBlendIfL-range, ClarityBlendIfL+range, mix));
+			#else 
+			float mix = luma;
+				mask = lerp(mask,0.0,smoothstep(ClarityBlendIfL-range, ClarityBlendIfL+range, mix));
+			#endif 
+
 		}
 		
 		#if ClarityRGBMode 		
@@ -474,8 +482,6 @@ ClarityFloat blur = tex2D(Clarity2Sampler, texcoord/ClarityOffset).CF;
 
 	#if ClarityRGBMode
 		orig.rgb = lerp(orig.rgb, sharp, ClarityStrength);
-		//orig.rgb = step(0.5,orig.rgb);
-		//orig = noiseX/DitherStrength;
 		return orig;
 	#else
 		luma = lerp(luma, sharp, ClarityStrength);
@@ -490,7 +496,7 @@ ClarityFloat Clarity1(in float4 vpos : SV_Position, in float2 texcoord : TEXCOOR
 	#if ClarityRGBMode 
 		return color;
 	#else 
-		return dot(color.rgb,float3(0.32786885,0.655737705,0.0163934436));
+		return dot(color.rgb,ClarityLuma);
 	#endif
 }
 
@@ -705,6 +711,7 @@ else
 
 technique Clarity2
 {
+
 	pass Clarity1
 	{
 		VertexShader = PostProcessVS;
